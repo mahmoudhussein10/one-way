@@ -1,0 +1,10 @@
+{
+  "name": "one-way-finance-qualification-funnel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env server.mjs",
+    "test": "node eligibility.test.mjs && node meta-pixel-config.test.mjs && node tracking.test.mjs"
+  }
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>لوحة الطلبات | One Way Finance</title>
+  <link rel="icon" href="public-logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <header class="dash-header">
+    <a class="brand" href="/"><img src="public-logo.png" alt="" /><span>ONE WAY <small>FINANCE</small></span></a>
+    <span class="dash-label">لوحة الطلبات</span>
+  </header>
+  <main class="dash-main">
+    <section class="login-card" id="loginCard">
+      <p class="eyebrow">دخول الموظفين</p>
+      <h1>طلبات العملاء،<br><em>في مكان واحد.</em></h1>
+      <p class="muted">اكتب رمز الإدارة لعرض الطلبات المحفوظة.</p>
+      <form id="loginForm">
+        <label for="adminToken">رمز لوحة الإدارة</label>
+        <input id="adminToken" type="password" autocomplete="current-password" required />
+        <div class="error" id="loginError" role="alert"></div>
+        <button class="primary-button" type="submit">عرض الطلبات</button>
+      </form>
+      <p class="privacy-hint">تفضل الجلسة مفتوحة على هذا الجهاز لمدة 30 يومًا أو لحد ما تسجل الخروج. لا تشارك رمز الإدارة.</p>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="dash-title-row">
+        <div><p class="eyebrow">متابعة العملاء</p><h1>الطلبات الواردة</h1><p class="muted">انسخ بيانات الطلب لإرسالها للشركة بالطريقة المعتمدة لديكم.</p></div>
+        <button id="logoutBtn" class="secondary-button" type="button">تسجيل الخروج</button>
+      </div>
+      <div class="toolbar"><div class="count-box"><strong id="leadCount">0</strong><span>طلب</span></div><label class="search-label" for="searchLeads">بحث بالاسم أو رقم الموبايل</label><input id="searchLeads" type="search" placeholder="اكتب الاسم أو الرقم" /></div>
+      <div class="error" id="dashboardError" role="alert"></div>
+      <div class="lead-list" id="leadList" aria-live="polite"></div>
+    </section>
+  </main>
+  <template id="emptyTemplate"><div class="empty-state"><strong>لسه مفيش طلبات</strong><span>الطلبات الجديدة هتظهر هنا بعد إرسالها من النموذج.</span></div></template>
+  <script src="dashboard.js" defer></script>
+</body>
+</html>
