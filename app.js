@@ -4,12 +4,12 @@ const formError = document.querySelector('#formError');
 const workTypes = [
   ['shop', 'محل تجاري'],
   ['kiosk', 'كشك'],
-  ['company', 'شركة'],
+  ['company', 'صاحب شركة / مؤسسة'],
   ['restaurant', 'مطعم أو كافيه'],
   ['trade', 'تجارة وتوزيع'],
   ['workshop', 'ورشة أو نشاط صناعي'],
   ['service', 'خدمات أو عمل حر'],
-  ['employee', 'موظف'],
+  ['employee', 'موظف في شركة أو جهة'],
   ['other', 'نشاط أو عمل آخر']
 ];
 const creditOptions = [
