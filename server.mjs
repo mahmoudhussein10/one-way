@@ -109,7 +109,7 @@ function normalizeSubmission(data) {
   if (name.length < 3 || name.length > 100) return {error:'اكتب الاسم بالكامل (من ٣ إلى ١٠٠ حرف).'};
   if (!/^1[0125]\d{8}$/.test(normalizedPhone)) return {error:'رقم الموبايل المصري غير صحيح.'};
   if (!allowedWorkTypes.has(workType)) return {error:'اختار طبيعة الشغل من القائمة.'};
-  if (workType === 'other' && (workDetail.length < 2 || workDetail.length > 150)) return {error:'اكتب طبيعة الشغل الآخر.'};
+  if ((workType === 'other' || workType === 'employee') && (workDetail.length < 2 || workDetail.length > 150)) return {error:workType === 'employee' ? 'اكتب أو اختار المسمى الوظيفي.' : 'اكتب طبيعة الشغل الآخر.'};
   if (workAddress.length < 4 || workAddress.length > 250) return {error:'اكتب عنوان الشغل بشكل مختصر.'};
   if (!allowedCreditHistory.has(creditHistory)) return {error:'اختار حالة سجل السداد.'};
   if (data.consent !== true) return {error:'الموافقة على استخدام البيانات مطلوبة.'};

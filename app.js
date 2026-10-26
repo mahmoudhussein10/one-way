@@ -18,6 +18,21 @@ const creditOptions = [
   ['currently_late', 'عندي تأخير حالي'],
   ['unknown', 'مش عارف أو ما تعاملتش ائتمانيًا']
 ];
+const employeeRoles = [
+  ['manager', 'مدير / مشرف'],
+  ['teacher', 'مدرس / معلم'],
+  ['accountant', 'محاسب / مراجع'],
+  ['lawyer', 'محامي'],
+  ['engineer', 'مهندس'],
+  ['medical', 'طبيب / صيدلي'],
+  ['sales', 'مبيعات / مندوب'],
+  ['hr', 'موارد بشرية'],
+  ['admin', 'إداري / سكرتارية'],
+  ['technical', 'فني / تشغيل'],
+  ['support', 'خدمة عملاء'],
+  ['other', 'وظيفة أخرى']
+];
+let employeeRole = '';
 let idempotencyKey = crypto.randomUUID();
 let submissionInProgress = false;
 let analyticsConsent = window.metaTracking?.hasConsent() ?? false;
@@ -33,9 +48,10 @@ function textField(name, label, placeholder, type = 'text', autocomplete = '') {
 }
 
 function optionGroup(name, label, options, hint = '') {
+  const selectedValue = name === 'employeeRole' ? employeeRole : answers[name];
   const buttons = options.map(([value, text]) => `
-    <button type="button" class="choice ${answers[name] === value ? 'selected' : ''}"
-      data-choice="${name}" data-value="${value}" aria-pressed="${answers[name] === value}">
+    <button type="button" class="choice ${selectedValue === value ? 'selected' : ''}"
+      data-choice="${name}" data-value="${value}" aria-pressed="${selectedValue === value}">
       ${text}
     </button>`).join('');
   return `<fieldset class="choice-field"><legend>${label} <small class="required-tag">(مطلوب)</small></legend>${hint ? `<p class="choice-hint">${hint}</p>` : ''}<div class="choice-grid" role="group" aria-label="${label}">${buttons}</div></fieldset>`;
@@ -49,6 +65,8 @@ function renderForm() {
       ${textField('phone', 'رقم الموبايل / واتساب', 'اكتب رقم تقدر نكلمك عليه', 'tel', 'tel')}
       <p class="field-hint full">لو رقم الموبايل هو نفسه رقم واتساب، اكتبه مرة واحدة.</p>
       ${optionGroup('workType', 'بتشتغل إيه؟', workTypes)}
+      ${answers.workType === 'employee' ? optionGroup('employeeRole', 'مسمّاك الوظيفي إيه؟', employeeRoles, 'اختار أقرب مسمى. لو مش موجود، اختار وظيفة أخرى واكتب تخصصك.') : ''}
+      ${answers.workType === 'employee' && employeeRole === 'other' ? textField('workDetail', 'اكتب المسمى الوظيفي والتخصص', 'مثال: مدير فرع، مدرس رياضيات، محاسب ضرائب') : ''}
       ${answers.workType === 'other' ? textField('workDetail', 'اكتب طبيعة شغلك', 'مثال: صيانة أجهزة أو توريدات') : ''}
       ${textField('workAddress', 'عنوان الشغل أو النشاط', 'المحافظة والمدينة أو الحي', 'text')}
       ${optionGroup('creditHistory', 'سجل السداد (الآي سكور) حسب معرفتك', creditOptions, 'اختار أقرب إجابة. ده سؤال مبدئي ومش بنعمل استعلام آي سكور هنا.')}
@@ -61,10 +79,21 @@ function renderForm() {
     input.addEventListener('input', () => { answers[input.name] = input.value; formError.textContent = ''; });
   });
   form.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => {
-    answers[button.dataset.choice] = button.dataset.value;
+    const choice = button.dataset.choice;
+    const value = button.dataset.value;
+    if (choice === 'employeeRole') {
+      employeeRole = value;
+      answers.workDetail = value === 'other' ? '' : employeeRoles.find(([role]) => role === value)?.[1] || '';
+    } else {
+      if (choice === 'workType' && value !== answers.workType) {
+        employeeRole = '';
+        answers.workDetail = '';
+      }
+      answers[choice] = value;
+    }
     renderForm();
     formError.textContent = '';
-    form.querySelector(`[data-choice="${button.dataset.choice}"][data-value="${button.dataset.value}"]`)?.focus();
+    form.querySelector(`[data-choice="${choice}"][data-value="${value}"]`)?.focus();
   }));
   form.querySelector('[name="consent"]').addEventListener('change', event => { answers.consent = event.target.checked; });
   form.querySelector('[name="analyticsConsent"]').addEventListener('change', event => {
@@ -86,6 +115,8 @@ async function submitForm(event) {
   if (answers.name.trim().length < 3) formError.textContent = 'اكتب اسمك بالكامل من فضلك.';
   else if (!validEgyptianMobile(answers.phone)) formError.textContent = 'راجع رقم الموبايل. لازم يكون رقم مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015.';
   else if (!answers.workType) formError.textContent = 'اختار طبيعة شغلك من الاختيارات.';
+  else if (answers.workType === 'employee' && !employeeRole) formError.textContent = 'اختار مسماك الوظيفي من الاختيارات.';
+  else if (answers.workType === 'employee' && employeeRole === 'other' && answers.workDetail.trim().length < 2) formError.textContent = 'اكتب المسمى الوظيفي والتخصص باختصار.';
   else if (answers.workType === 'other' && answers.workDetail.trim().length < 2) formError.textContent = 'اكتب طبيعة شغلك باختصار.';
   else if (answers.workAddress.trim().length < 4) formError.textContent = 'اكتب عنوان الشغل أو النشاط بشكل مختصر.';
   else if (!answers.creditHistory) formError.textContent = 'اختار الإجابة الأقرب لحالة سجل السداد.';
