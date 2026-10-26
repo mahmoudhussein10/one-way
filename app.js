@@ -1,4 +1,4 @@
-const answers = { name: '', phone: '', workType: '', workDetail: '', workAddress: '', creditHistory: '', consent: false };
+const answers = { name: '', phone: '', workType: '', workDetail: '', employmentSector: '', workplaceType: '', workplaceTypeOther: '', jobTitle: '', jobTitleOther: '', workAddress: '', creditHistory: '', consent: false };
 const form = document.querySelector('#stepContent');
 const formError = document.querySelector('#formError');
 const workTypes = [
@@ -18,6 +18,34 @@ const creditOptions = [
   ['currently_late', 'عندي تأخير حالي'],
   ['unknown', 'مش عارف أو ما تعاملتش ائتمانيًا']
 ];
+const employmentSectors = [
+  ['government', 'حكومي'],
+  ['private', 'شركة / قطاع خاص'],
+  ['public', 'قطاع عام']
+];
+const workplacesBySector = {
+  government: [
+    ['school', 'مدرسة أو جامعة حكومية'],
+    ['government_authority', 'وزارة أو هيئة حكومية'],
+    ['government_hospital', 'مستشفى أو وحدة صحية حكومية'],
+    ['local_government', 'محافظة أو حي أو وحدة محلية'],
+    ['other', 'جهة حكومية أخرى']
+  ],
+  private: [
+    ['company', 'شركة أو مكتب خاص'],
+    ['private_school', 'مدرسة أو جامعة خاصة'],
+    ['private_hospital', 'مستشفى أو عيادة خاصة'],
+    ['factory', 'مصنع أو شركة إنتاج'],
+    ['private_shop', 'محل أو نشاط تجاري خاص'],
+    ['other', 'جهة خاصة أخرى']
+  ],
+  public: [
+    ['public_company', 'شركة قطاع عام'],
+    ['public_authority', 'هيئة أو مؤسسة عامة'],
+    ['public_hospital', 'مستشفى قطاع عام'],
+    ['other', 'جهة قطاع عام أخرى']
+  ]
+};
 const employeeRoles = [
   ['manager', 'مدير / مشرف'],
   ['teacher', 'مدرس / معلم'],
@@ -30,9 +58,9 @@ const employeeRoles = [
   ['admin', 'إداري / سكرتارية'],
   ['technical', 'فني / تشغيل'],
   ['support', 'خدمة عملاء'],
+  ['driver', 'سائق'],
   ['other', 'وظيفة أخرى']
 ];
-let employeeRole = '';
 let idempotencyKey = crypto.randomUUID();
 let submissionInProgress = false;
 let analyticsConsent = window.metaTracking?.hasConsent() ?? false;
@@ -48,7 +76,7 @@ function textField(name, label, placeholder, type = 'text', autocomplete = '') {
 }
 
 function optionGroup(name, label, options, hint = '') {
-  const selectedValue = name === 'employeeRole' ? employeeRole : answers[name];
+  const selectedValue = answers[name];
   const buttons = options.map(([value, text]) => `
     <button type="button" class="choice ${selectedValue === value ? 'selected' : ''}"
       data-choice="${name}" data-value="${value}" aria-pressed="${selectedValue === value}">
@@ -65,8 +93,11 @@ function renderForm() {
       ${textField('phone', 'رقم الموبايل / واتساب', 'اكتب رقم تقدر نكلمك عليه', 'tel', 'tel')}
       <p class="field-hint full">لو رقم الموبايل هو نفسه رقم واتساب، اكتبه مرة واحدة.</p>
       ${optionGroup('workType', 'بتشتغل إيه؟', workTypes)}
-      ${answers.workType === 'employee' ? optionGroup('employeeRole', 'مسمّاك الوظيفي إيه؟', employeeRoles, 'اختار أقرب مسمى. لو مش موجود، اختار وظيفة أخرى واكتب تخصصك.') : ''}
-      ${answers.workType === 'employee' && employeeRole === 'other' ? textField('workDetail', 'اكتب المسمى الوظيفي والتخصص', 'مثال: مدير فرع، مدرس رياضيات، محاسب ضرائب') : ''}
+      ${answers.workType === 'employee' ? optionGroup('employmentSector', 'جهة عملك تبع أي قطاع؟', employmentSectors) : ''}
+      ${answers.workType === 'employee' && answers.employmentSector ? optionGroup('workplaceType', 'بتشتغل فين؟', workplacesBySector[answers.employmentSector], 'اختار نوع جهة العمل. مش محتاج تكتب اسم الشركة أو المؤسسة.') : ''}
+      ${answers.workType === 'employee' && answers.workplaceType === 'other' ? textField('workplaceTypeOther', 'اكتب نوع جهة العمل', 'مثال: مركز شباب حكومي أو شركة مقاولات') : ''}
+      ${answers.workType === 'employee' && answers.workplaceType ? optionGroup('jobTitle', 'وظيفتك إيه داخل الجهة؟', employeeRoles, 'مثال: في المدرسة اختار مدرس، وفي الشركة اختار محاسب أو مدير أو اكتب تخصصك.') : ''}
+      ${answers.workType === 'employee' && answers.jobTitle === 'other' ? textField('jobTitleOther', 'اكتب المسمى الوظيفي والتخصص', 'مثال: مدير فرع، مدرس رياضيات، محاسب ضرائب') : ''}
       ${answers.workType === 'other' ? textField('workDetail', 'اكتب طبيعة شغلك', 'مثال: صيانة أجهزة أو توريدات') : ''}
       ${textField('workAddress', 'عنوان الشغل أو النشاط', 'المحافظة والمدينة أو الحي', 'text')}
       ${optionGroup('creditHistory', 'سجل السداد (الآي سكور) حسب معرفتك', creditOptions, 'اختار أقرب إجابة. ده سؤال مبدئي ومش بنعمل استعلام آي سكور هنا.')}
@@ -81,16 +112,26 @@ function renderForm() {
   form.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => {
     const choice = button.dataset.choice;
     const value = button.dataset.value;
-    if (choice === 'employeeRole') {
-      employeeRole = value;
-      answers.workDetail = value === 'other' ? '' : employeeRoles.find(([role]) => role === value)?.[1] || '';
-    } else {
-      if (choice === 'workType' && value !== answers.workType) {
-        employeeRole = '';
-        answers.workDetail = '';
-      }
-      answers[choice] = value;
+    if (choice === 'workType' && value !== answers.workType) {
+      answers.workDetail = '';
+      answers.employmentSector = '';
+      answers.workplaceType = '';
+      answers.workplaceTypeOther = '';
+      answers.jobTitle = '';
+      answers.jobTitleOther = '';
+    } else if (choice === 'employmentSector' && value !== answers.employmentSector) {
+      answers.workplaceType = '';
+      answers.workplaceTypeOther = '';
+      answers.jobTitle = '';
+      answers.jobTitleOther = '';
+    } else if (choice === 'workplaceType' && value !== answers.workplaceType) {
+      answers.workplaceTypeOther = '';
+      answers.jobTitle = '';
+      answers.jobTitleOther = '';
+    } else if (choice === 'jobTitle' && value !== answers.jobTitle) {
+      answers.jobTitleOther = '';
     }
+    answers[choice] = value;
     renderForm();
     formError.textContent = '';
     form.querySelector(`[data-choice="${choice}"][data-value="${value}"]`)?.focus();
@@ -115,8 +156,11 @@ async function submitForm(event) {
   if (answers.name.trim().length < 3) formError.textContent = 'اكتب اسمك بالكامل من فضلك.';
   else if (!validEgyptianMobile(answers.phone)) formError.textContent = 'راجع رقم الموبايل. لازم يكون رقم مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015.';
   else if (!answers.workType) formError.textContent = 'اختار طبيعة شغلك من الاختيارات.';
-  else if (answers.workType === 'employee' && !employeeRole) formError.textContent = 'اختار مسماك الوظيفي من الاختيارات.';
-  else if (answers.workType === 'employee' && employeeRole === 'other' && answers.workDetail.trim().length < 2) formError.textContent = 'اكتب المسمى الوظيفي والتخصص باختصار.';
+  else if (answers.workType === 'employee' && !answers.employmentSector) formError.textContent = 'اختار قطاع جهة عملك.';
+  else if (answers.workType === 'employee' && !answers.workplaceType) formError.textContent = 'اختار نوع جهة العمل.';
+  else if (answers.workType === 'employee' && answers.workplaceType === 'other' && answers.workplaceTypeOther.trim().length < 2) formError.textContent = 'اكتب نوع جهة العمل باختصار.';
+  else if (answers.workType === 'employee' && !answers.jobTitle) formError.textContent = 'اختار وظيفتك داخل جهة العمل.';
+  else if (answers.workType === 'employee' && answers.jobTitle === 'other' && answers.jobTitleOther.trim().length < 2) formError.textContent = 'اكتب المسمى الوظيفي والتخصص باختصار.';
   else if (answers.workType === 'other' && answers.workDetail.trim().length < 2) formError.textContent = 'اكتب طبيعة شغلك باختصار.';
   else if (answers.workAddress.trim().length < 4) formError.textContent = 'اكتب عنوان الشغل أو النشاط بشكل مختصر.';
   else if (!answers.creditHistory) formError.textContent = 'اختار الإجابة الأقرب لحالة سجل السداد.';

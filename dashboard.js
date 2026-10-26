@@ -7,6 +7,9 @@ const dashboardError = document.querySelector('#dashboardError');
 const search = document.querySelector('#searchLeads');
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dateText = value => new Intl.DateTimeFormat('ar-EG',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
+const workDescription = lead => lead.workType === 'employee' && lead.employmentSectorLabel
+  ? [lead.employmentSectorLabel, lead.workplaceTypeLabel, lead.jobTitleLabel].filter(Boolean).join(' — ')
+  : `${lead.workTypeLabel}${lead.workDetail ? ` — ${lead.workDetail}` : ''}`;
 
 async function loadLeads() {
   dashboardError.textContent='';
@@ -23,7 +26,7 @@ function copyText(lead) {
     `طلب جديد رقم ${lead.id}`,
     `الاسم: ${lead.name}`,
     `رقم الموبايل / واتساب: ${lead.phone}`,
-    `طبيعة الشغل: ${lead.workTypeLabel}${lead.workDetail?` — ${lead.workDetail}`:''}`,
+    `طبيعة الشغل: ${workDescription(lead)}`,
     `عنوان الشغل: ${lead.workAddress}`,
     `سجل السداد (حسب إفادة العميل): ${lead.creditHistoryLabel}`,
     `تاريخ الطلب: ${dateText(lead.createdAt)}`
@@ -32,7 +35,7 @@ function copyText(lead) {
 
 function renderLeads() {
   const query=search.value.trim().toLocaleLowerCase('ar');
-  const filtered=leads.filter(lead=>`${lead.name} ${lead.phone} ${lead.id}`.toLocaleLowerCase('ar').includes(query));
+  const filtered=leads.filter(lead=>`${lead.name} ${lead.phone} ${lead.id} ${workDescription(lead)}`.toLocaleLowerCase('ar').includes(query));
   document.querySelector('#leadCount').textContent=String(leads.length);
   if(!filtered.length) {
     list.innerHTML='';
@@ -45,7 +48,7 @@ function renderLeads() {
     <div class="lead-head"><div><h2>${escapeHtml(lead.name)}</h2><div class="lead-time">${escapeHtml(dateText(lead.createdAt))}</div></div><div class="reference">${escapeHtml(lead.id)}</div></div>
     <div class="lead-fields">
       <div class="lead-field"><span>الموبايل / واتساب</span><strong dir="ltr">${escapeHtml(lead.phone)}</strong></div>
-      <div class="lead-field"><span>طبيعة الشغل</span><strong>${escapeHtml(lead.workTypeLabel)}${lead.workDetail?` — ${escapeHtml(lead.workDetail)}`:''}</strong></div>
+      <div class="lead-field"><span>طبيعة الشغل</span><strong>${escapeHtml(workDescription(lead))}</strong></div>
       <div class="lead-field"><span>عنوان الشغل</span><strong>${escapeHtml(lead.workAddress)}</strong></div>
       <div class="lead-field"><span>سجل السداد (حسب إفادة العميل)</span><strong>${escapeHtml(lead.creditHistoryLabel)}</strong></div>
     </div>
