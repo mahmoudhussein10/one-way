@@ -46,21 +46,16 @@ const workplacesBySector = {
     ['other', 'جهة قطاع عام أخرى']
   ]
 };
-const employeeRoles = [
-  ['manager', 'مدير / مشرف'],
-  ['teacher', 'مدرس / معلم'],
-  ['accountant', 'محاسب / مراجع'],
-  ['lawyer', 'محامي'],
-  ['engineer', 'مهندس'],
-  ['medical', 'طبيب / صيدلي'],
-  ['sales', 'مبيعات / مندوب'],
-  ['hr', 'موارد بشرية'],
-  ['admin', 'إداري / سكرتارية'],
-  ['technical', 'فني / تشغيل'],
-  ['support', 'خدمة عملاء'],
-  ['driver', 'سائق'],
-  ['other', 'وظيفة أخرى']
-];
+const workDetailPrompts = {
+  shop: ['اشرح طبيعة شغلك في المحل', 'مثال: بقالة، ملابس، موبايلات، أو صاحب المحل'],
+  kiosk: ['اشرح طبيعة شغلك في الكشك', 'مثال: صاحب كشك أو بائع'],
+  company: ['اشرح طبيعة نشاطك ودورك في الشركة', 'مثال: تجارة ملابس، إدارة حسابات، أو أمن'],
+  restaurant: ['اشرح طبيعة شغلك في المطعم أو الكافيه', 'مثال: ويتر، شيف، كاشير، مشرف، أو صاحب المكان'],
+  trade: ['اشرح طبيعة شغلك في التجارة أو التوزيع', 'مثال: موزع مواد غذائية أو تاجر أدوات كهربائية'],
+  workshop: ['اشرح طبيعة شغلك في الورشة أو النشاط الصناعي', 'مثال: فني صيانة، لحام، أو صاحب ورشة'],
+  service: ['اشرح طبيعة شغلك أو الخدمة اللي بتقدمها', 'مثال: محاسب حر، مصمم، أو صيانة أجهزة'],
+  other: ['اكتب طبيعة شغلك بالتفصيل', 'مثال: توريدات، صيانة أجهزة، أو نشاط تاني']
+};
 let idempotencyKey = crypto.randomUUID();
 let submissionInProgress = false;
 let analyticsConsent = window.metaTracking?.hasConsent() ?? false;
@@ -72,7 +67,9 @@ function escapeHtml(value = '') {
 }
 
 function textField(name, label, placeholder, type = 'text', autocomplete = '') {
-  return `<div class="field ${['workAddress','workDetail'].includes(name) ? 'full' : ''}"><label for="${name}">${label} <small class="required-tag">(مطلوب)</small></label><input id="${name}" name="${name}" type="${type}" placeholder="${placeholder}" value="${escapeHtml(answers[name])}" ${autocomplete ? `autocomplete="${autocomplete}"` : ''} ${name === 'phone' ? 'inputmode="tel" maxlength="15"' : ''} required /></div>`;
+  const fullWidth = ['workAddress', 'workDetail', 'jobTitle'].includes(name);
+  const maxLength = name === 'jobTitle' ? 'maxlength="100"' : name === 'workDetail' ? 'maxlength="150"' : '';
+  return `<div class="field ${fullWidth ? 'full' : ''}"><label for="${name}">${label} <small class="required-tag">(مطلوب)</small></label><input id="${name}" name="${name}" type="${type}" placeholder="${placeholder}" value="${escapeHtml(answers[name])}" ${autocomplete ? `autocomplete="${autocomplete}"` : ''} ${name === 'phone' ? 'inputmode="tel" maxlength="15"' : ''} ${maxLength} required /></div>`;
 }
 
 function optionGroup(name, label, options, hint = '') {
@@ -96,9 +93,8 @@ function renderForm() {
       ${answers.workType === 'employee' ? optionGroup('employmentSector', 'جهة عملك تبع أي قطاع؟', employmentSectors) : ''}
       ${answers.workType === 'employee' && answers.employmentSector ? optionGroup('workplaceType', 'بتشتغل فين؟', workplacesBySector[answers.employmentSector], 'اختار نوع جهة العمل. مش محتاج تكتب اسم الشركة أو المؤسسة.') : ''}
       ${answers.workType === 'employee' && answers.workplaceType === 'other' ? textField('workplaceTypeOther', 'اكتب نوع جهة العمل', 'مثال: مركز شباب حكومي أو شركة مقاولات') : ''}
-      ${answers.workType === 'employee' && answers.workplaceType ? optionGroup('jobTitle', 'وظيفتك إيه داخل الجهة؟', employeeRoles, 'مثال: في المدرسة اختار مدرس، وفي الشركة اختار محاسب أو مدير أو اكتب تخصصك.') : ''}
-      ${answers.workType === 'employee' && answers.jobTitle === 'other' ? textField('jobTitleOther', 'اكتب المسمى الوظيفي والتخصص', 'مثال: مدير فرع، مدرس رياضيات، محاسب ضرائب') : ''}
-      ${answers.workType === 'other' ? textField('workDetail', 'اكتب طبيعة شغلك', 'مثال: صيانة أجهزة أو توريدات') : ''}
+      ${answers.workType === 'employee' && answers.workplaceType ? textField('jobTitle', 'مسمّاك الوظيفي أو بتشتغل إيه بالتحديد؟', 'مثال: مدير حسابات، فرد أمن، مدرس رياضيات، أو محاسب ضرائب') : ''}
+      ${answers.workType && answers.workType !== 'employee' ? textField('workDetail', workDetailPrompts[answers.workType][0], workDetailPrompts[answers.workType][1]) : ''}
       ${textField('workAddress', 'عنوان الشغل أو النشاط', 'المحافظة والمدينة أو الحي', 'text')}
       ${optionGroup('creditHistory', 'سجل السداد (الآي سكور) حسب معرفتك', creditOptions, 'اختار أقرب إجابة. ده سؤال مبدئي ومش بنعمل استعلام آي سكور هنا.')}
       <label class="consent full"><input type="checkbox" name="consent" ${answers.consent ? 'checked' : ''}><span>أوافق على استخدام بياناتي لمراجعة الطلب والتواصل معي بخصوصه. <a href="#" class="policy-link" aria-disabled="true">سياسة الخصوصية (الرابط غير متاح حاليًا)</a></span></label>
@@ -159,9 +155,10 @@ async function submitForm(event) {
   else if (answers.workType === 'employee' && !answers.employmentSector) formError.textContent = 'اختار قطاع جهة عملك.';
   else if (answers.workType === 'employee' && !answers.workplaceType) formError.textContent = 'اختار نوع جهة العمل.';
   else if (answers.workType === 'employee' && answers.workplaceType === 'other' && answers.workplaceTypeOther.trim().length < 2) formError.textContent = 'اكتب نوع جهة العمل باختصار.';
-  else if (answers.workType === 'employee' && !answers.jobTitle) formError.textContent = 'اختار وظيفتك داخل جهة العمل.';
-  else if (answers.workType === 'employee' && answers.jobTitle === 'other' && answers.jobTitleOther.trim().length < 2) formError.textContent = 'اكتب المسمى الوظيفي والتخصص باختصار.';
-  else if (answers.workType === 'other' && answers.workDetail.trim().length < 2) formError.textContent = 'اكتب طبيعة شغلك باختصار.';
+  else if (answers.workType === 'employee' && answers.workplaceType && answers.jobTitle.trim().length < 2) formError.textContent = 'اكتب مسمّاك الوظيفي أو طبيعة شغلك بالتحديد.';
+  else if (answers.workType === 'employee' && answers.jobTitle.trim().length > 100) formError.textContent = 'اكتب المسمى الوظيفي في ١٠٠ حرف أو أقل.';
+  else if (answers.workType && answers.workType !== 'employee' && answers.workDetail.trim().length < 2) formError.textContent = 'اشرح طبيعة شغلك بالتحديد.';
+  else if (answers.workType && answers.workType !== 'employee' && answers.workDetail.trim().length > 150) formError.textContent = 'اكتب طبيعة شغلك في ١٥٠ حرف أو أقل.';
   else if (answers.workAddress.trim().length < 4) formError.textContent = 'اكتب عنوان الشغل أو النشاط بشكل مختصر.';
   else if (!answers.creditHistory) formError.textContent = 'اختار الإجابة الأقرب لحالة سجل السداد.';
   else if (!answers.consent) formError.textContent = 'وافق على استخدام البيانات والتواصل بخصوص الطلب قبل الإرسال.';
