@@ -8,18 +8,13 @@ const appSource = await readFile(new URL('./app.js', import.meta.url), 'utf8');
 
 function createHarness({ consent = null, pixelId = '12345', failConfig = false } = {}) {
   const listeners = new Map();
-  const elements = Object.fromEntries(['#trackingConsent', '#privacySettings', '#acceptTracking', '#rejectTracking'].map(selector => [selector, {
-    hidden: selector === '#trackingConsent',
-    focus() {},
-    addEventListener(name, handler) { listeners.set(`${selector}:${name}`, handler); }
-  }]));
   const scripts = [];
   let configRequests = 0;
   const localValues = new Map(consent ? [['owf_analytics_consent_v1', consent]] : []);
   const document = {
     head: { appendChild(script) { scripts.push(script); } },
     createElement() { return {}; },
-    querySelector(selector) { return elements[selector]; }
+    querySelector() { return null; }
   };
   const window = {};
   const context = {
@@ -40,7 +35,6 @@ function createHarness({ consent = null, pixelId = '12345', failConfig = false }
   };
   vm.runInNewContext(trackingSource, context);
   return {
-    elements,
     listeners,
     scripts,
     window,
@@ -57,9 +51,9 @@ test('without analytics consent no Pixel config request, PageView, or Lead is se
   assert.equal(harness.scripts.length, 0);
 });
 
-test('rejecting analytics consent keeps the Pixel unloaded', () => {
+test('opting out of analytics keeps the Pixel unloaded', () => {
   const harness = createHarness();
-  harness.listeners.get('#rejectTracking:click')();
+  harness.window.metaTracking.setConsent(false);
   harness.window.metaTracking.trackLead();
   assert.equal(harness.configRequests, 0);
   assert.equal(harness.scripts.length, 0);
@@ -70,13 +64,21 @@ test('consented visitor gets one PageView and one parameter-free Lead despite re
   await harness.flush();
   harness.window.metaTracking.trackLead();
   harness.window.metaTracking.trackLead();
-  harness.listeners.get('#acceptTracking:click')();
+  harness.window.metaTracking.setConsent(true);
   await harness.flush();
 
   const events = harness.calls().filter(([method]) => method === 'track');
   assert.deepEqual(events, [['track', 'PageView'], ['track', 'Lead']]);
   assert.equal(harness.configRequests, 1);
   assert.equal(harness.scripts.length, 1);
+});
+
+test('choosing optional analytics consent loads the Pixel and sends one PageView', async () => {
+  const harness = createHarness();
+  assert.equal(harness.configRequests, 0);
+  harness.window.metaTracking.setConsent(true);
+  await harness.flush();
+  assert.deepEqual(harness.calls(), [['set', 'autoConfig', false, '12345'], ['init', '12345'], ['track', 'PageView']]);
 });
 
 test('Lead tracking is reached only after the API confirms a saved application ID', () => {

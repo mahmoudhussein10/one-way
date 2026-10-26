@@ -1,9 +1,5 @@
 (() => {
   const consentKey = 'owf_analytics_consent_v1';
-  const panel = document.querySelector('#trackingConsent');
-  const manageButton = document.querySelector('#privacySettings');
-  const acceptButton = document.querySelector('#acceptTracking');
-  const rejectButton = document.querySelector('#rejectTracking');
   let consent = null;
   let pixelInstallPromise = null;
   let pixelInstalled = false;
@@ -17,18 +13,11 @@
     if (savedConsent === 'denied') consent = false;
   } catch { /* Keep consent in memory if browser storage is unavailable. */ }
 
-  function showConsentPanel(moveFocus = true) {
-    panel.hidden = false;
-    if (moveFocus) acceptButton.focus({ preventScroll: true });
-  }
-
-  function saveConsent(value) {
-    consent = value;
-    try { localStorage.setItem(consentKey, value ? 'granted' : 'denied'); } catch { /* In-memory choice remains active for this page. */ }
-    panel.hidden = true;
-    if (value) installPixel();
+  function setConsent(value) {
+    consent = Boolean(value);
+    try { localStorage.setItem(consentKey, consent ? 'granted' : 'denied'); } catch { /* In-memory choice remains active for this page. */ }
+    if (consent) installPixel();
     else if (typeof window.fbq === 'function') window.fbq('consent', 'revoke');
-    manageButton.focus({ preventScroll: true });
   }
 
   async function installPixel() {
@@ -90,12 +79,11 @@
     installPixel();
   }
 
-  acceptButton.addEventListener('click', () => saveConsent(true));
-  rejectButton.addEventListener('click', () => saveConsent(false));
-  manageButton.addEventListener('click', () => showConsentPanel());
+  if (consent === true) installPixel();
 
-  if (consent === null) showConsentPanel(false);
-  else if (consent) installPixel();
-
-  window.metaTracking = Object.freeze({ trackLead });
+  window.metaTracking = Object.freeze({
+    trackLead,
+    setConsent,
+    hasConsent: () => consent === true
+  });
 })();

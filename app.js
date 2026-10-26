@@ -20,6 +20,7 @@ const creditOptions = [
 ];
 let idempotencyKey = crypto.randomUUID();
 let submissionInProgress = false;
+let analyticsConsent = window.metaTracking?.hasConsent() ?? false;
 
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, char => ({
@@ -52,6 +53,7 @@ function renderForm() {
       ${textField('workAddress', 'عنوان الشغل أو النشاط', 'المحافظة والمدينة أو الحي', 'text')}
       ${optionGroup('creditHistory', 'سجل السداد (الآي سكور) حسب معرفتك', creditOptions, 'اختار أقرب إجابة. ده سؤال مبدئي ومش بنعمل استعلام آي سكور هنا.')}
       <label class="consent full"><input type="checkbox" name="consent" ${answers.consent ? 'checked' : ''}><span>أوافق على استخدام بياناتي لمراجعة الطلب والتواصل معي بخصوصه. <a href="#" class="policy-link" aria-disabled="true">سياسة الخصوصية (الرابط غير متاح حاليًا)</a></span></label>
+      <label class="consent analytics-consent full"><input type="checkbox" name="analyticsConsent" ${analyticsConsent ? 'checked' : ''}><span>اختياري: أوافق على استخدام Meta لقياس الزيارات والطلبات وتحسين الإعلانات.<small>Meta تستقبل معلومات تقنية عن الزيارة. موافقتك مش شرط لإرسال الطلب.</small></span></label>
       <div class="form-actions full"><button class="button primary" id="submitBtn" type="submit">إرسال الطلب <span>←</span></button></div>
     </div>`;
 
@@ -65,6 +67,10 @@ function renderForm() {
     form.querySelector(`[data-choice="${button.dataset.choice}"][data-value="${button.dataset.value}"]`)?.focus();
   }));
   form.querySelector('[name="consent"]').addEventListener('change', event => { answers.consent = event.target.checked; });
+  form.querySelector('[name="analyticsConsent"]').addEventListener('change', event => {
+    analyticsConsent = event.target.checked;
+    window.metaTracking?.setConsent(analyticsConsent);
+  });
   form.querySelectorAll('a[href="#"]').forEach(link => link.addEventListener('click', event => event.preventDefault()));
 }
 
